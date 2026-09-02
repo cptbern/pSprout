@@ -8,6 +8,11 @@
 !/README.md
 !/requirements.txt
 
+# Keep the examples under version control (they are rendered natively on github.com; no external assets like lib/ or exports/ are needed for that rendering).
+!/Examples/
+!/Examples/sample_modification_graph.png
+!/Examples/merged_space.png
+
 # Keep the notebooks under version control (rendered natively on github.com;
 # no external assets like lib/ or exports/ are needed for that rendering).
 !/Documentation/
