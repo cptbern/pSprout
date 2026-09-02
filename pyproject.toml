@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pSprout"
+version = "0.1.0"
+description = "Chemical generation utilities"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "rdkit",
+]
+
+[tool.setuptools]
+packages = ["psprout"]

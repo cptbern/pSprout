@@ -1,0 +1,24 @@
+# public-release branch: whitelist only the subset published to the cptbern remote.
+# Ignore everything by default.
+*
+
+# Keep these root files under version control.
+!/LICENSE
+!/pyproject.toml
+!/README.md
+!/requirements.txt
+
+# Keep the source package under version control.
+!/psprout/
+!/psprout/**
+
+# Keep this ignore file tracked.
+!/.gitignore
+
+# Always ignore environment and Python cache.
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*DS_Store

@@ -1,0 +1,125 @@
+# Modification library for pSprout
+# Heavily inspired by Med Chem. 2011 May 26;54(10):3451-79.
+#doi: 10.1021/jm200187y. Epub 2011 May 2.
+# The medicinal chemist's toolbox: an analysis of reactions used in the pursuit of drug candidates 
+
+modifications:
+  - symbol: "AmideCoupling"
+    name: "Amide coupling"
+    type: "substitution"
+    reactionSMARTS: "[C:1](=[O:2])[OH:3].[N:4]>>[C:1](=[O:2])[N:4]"
+    description: "Carboxylic acid + amine → amide"
+
+  - symbol: "SNArAmination"
+    name: "SNAr amination"
+    type: "substitution"
+    reactionSMARTS: "[c:1][F,Cl,Br,I:2].[N:3]>>[c:1][N:3]"
+    description: "Aryl halide + amine → aryl amine"
+
+  - symbol: "SuzukiMiyauraCoupling"
+    name: "Suzuki–Miyaura coupling"
+    type: "substitution"
+    reactionSMARTS: "[c:1][Br,I,Cl:2].[c:3][B:4](O)O>>[c:1][c:3]"
+    description: "Aryl/vinyl halide + boronic acid → biaryl"
+
+  - symbol: "BuchwalHartwigAmination"
+    name: "Buchwald–Hartwig amination"
+    type: "substitution"
+    reactionSMARTS: "[c:1][Br,I,Cl:2].[N:3]>>[c:1][N:3]"
+    description: "Aryl halide + amine → aryl amine"
+
+  - symbol: "ReductiveAmination"
+    name: "Reductive amination"
+    type: "substitution"
+    reactionSMARTS: "[C:1](=[O:2]).[N:3]>>[C:1][N:3]"
+    description: "Aldehyde/ketone + amine → amine"
+
+  - symbol: "NAlkylation"
+    name: "N-alkylation"
+    type: "substitution"
+    reactionSMARTS: "[N:1].[C:2][Br,Cl,I:3]>>[N:1][C:2]"
+    description: "Alkyl halide + amine → N-alkyl amine"
+
+  - symbol: "OAlkylation"
+    name: "O-alkylation"
+    type: "substitution"
+    reactionSMARTS: "[O:1].[C:2][Br,Cl,I:3]>>[O:1][C:2]"
+    description: "Alkyl halide + alcohol/phenol → ether"
+
+  - symbol: "SulfonamideFormation"
+    name: "Sulfonamide formation"
+    type: "substitution"
+    reactionSMARTS: "[S:1](=[O:2])(=[O:3])[Cl:4].[N:5]>>[S:1](=[O:2])(=[O:3])[N:5]"
+    description: "Sulfonyl chloride + amine → sulfonamide"
+
+  - symbol: "Esterification"
+    name: "Esterification"
+    type: "substitution"
+    reactionSMARTS: "[C:1](=[O:2])[OH:3].[O:4]>>[C:1](=[O:2])[O:4]"
+    description: "Carboxylic acid + alcohol → ester"
+
+  - symbol: "EsterHydrolysis"
+    name: "Ester hydrolysis"
+    type: "purge"
+    reactionSMARTS: "[C:1](=[O:2])[O:3][C:4]>>[C:1](=[O:2])[OH]"
+    description: "Ester → carboxylic acid"
+
+  - symbol: "BocProtection"
+    name: "Boc protection"
+    type: "addition"
+    reactionSMARTS: "[N:1].[C:2](=[O:3])OC(C)(C)C>>[N:1][C:2](=[O:3])OC(C)(C)C"
+    description: "Amine → Boc-protected amine"
+
+  - symbol: "BocDeprotection"
+    name: "Boc deprotection"
+    type: "purge"
+    reactionSMARTS: "[N:1][C:2](=[O:3])OC(C)(C)C>>[N:1]"
+    description: "Boc-protected amine → free amine"
+
+  - symbol: "SonogashiraCoupling"
+    name: "Sonogashira coupling"
+    type: "substitution"
+    reactionSMARTS: "[c:1][Br,I,Cl:2].[C:3]#[C:4]>>[c:1][C:3]#[C:4]"
+    description: "Aryl/vinyl halide + terminal alkyne → alkynyl arene"
+
+  - symbol: "HeckCoupling"
+    name: "Heck coupling"
+    type: "substitution"
+    reactionSMARTS: "[c:1][Br,I,Cl:2].[C:3]=[C:4]>>[c:1][C:3]=[C:4]"
+    description: "Aryl/vinyl halide + alkene → substituted alkene"
+
+  - symbol: "ChanLamCNCoupling"
+    name: "Chan–Lam C–N coupling"
+    type: "substitution"
+    reactionSMARTS: "[c:1][B:2](O)O.[N:3]>>[c:1][N:3]"
+    description: "Arylboronic acid + amine → aryl amine"
+
+  - symbol: "Hydrogenation"
+    name: "Hydrogenation"
+    type: "substitution"
+    reactionSMARTS: "[C:1]=[C:2]>>[C:1][C:2]"
+    description: "Alkene → alkane"
+
+  - symbol: "AlcoholOxidation"
+    name: "Alcohol oxidation"
+    type: "substitution"
+    reactionSMARTS: "[C:1][OH:2]>>[C:1]=[O:2]"
+    description: "Alcohol → carbonyl"
+
+  - symbol: "CarbonylReduction"
+    name: "Carbonyl reduction"
+    type: "substitution"
+    reactionSMARTS: "[C:1]=[O:2]>>[C:1][OH:2]"
+    description: "Aldehyde/ketone → alcohol"
+
+  - symbol: "NOxideFormation"
+    name: "N-oxide formation"
+    type: "addition"
+    reactionSMARTS: "[N:1]>>[N:1][O]"
+    description: "Tertiary amine → amine N-oxide"
+
+  - symbol: "MitsunobuSubstitution"
+    name: "Mitsunobu substitution"
+    type: "substitution"
+    reactionSMARTS: "[C:1][OH:2].[N,O,S:3]>>[C:1][N,O,S:3]"
+    description: "Alcohol → substitution product with heteroatom nucleophile"
