@@ -51,7 +51,7 @@ When expansions from distinct support molecules reach a common product, their br
 
 ## Installation
 
-pSprout requires Python 3.10 or later. Check out the repository, and install the development dependencies:
+pSprout requires Python 3.13 or later. Check out the repository, and install the development dependencies:
 
 ```bash
 pip install -r requirements.txt
