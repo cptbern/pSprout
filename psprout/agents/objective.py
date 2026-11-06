@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+import warnings
 
 from rdkit import Chem
 
@@ -23,6 +24,11 @@ class Metric(ABC):
         raise NotImplementedError
 
     def __call__(self, space: Space, mol: Chem.Mol) -> float:
+        warnings.warn(
+            "Calling a Metric is deprecated; use metric.measure(space, mol) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.measure(space, mol)
 
 

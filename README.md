@@ -64,8 +64,10 @@ The repository also includes `Overview.ipynb`, which demonstrates defining modif
 Create a space from support molecules, load a few transformations, and expand for two iterations:
 
 ```python
-from psprout import ExhaustiveExpansionAgent, GraphStyle, Space
+from psprout import Space
+from psprout.agents import ExhaustiveExpansionAgent
 from psprout.modifications import ModificationLibrary
+from psprout.visualization import GraphStyle
 
 library = ModificationLibrary.load("simple")
 
@@ -78,7 +80,7 @@ agent = ExhaustiveExpansionAgent(
 for _ in agent.run(max_iterations=2):
     pass
 
-print(space.list_smiles())
+print(space.smiles)
 space.view(style=GraphStyle.dark()).to_html("graph.html")
 ```
 
@@ -92,15 +94,15 @@ The result is a directed graph: nodes represent canonicalized molecules and edge
 from psprout import Space
 
 space = Space(support_molecules=["c1ccccc1", "CO"])
-graph = space.get_graph()
-all_smiles = space.list_smiles()
+graph = space.graph
+all_smiles = space.smiles
 ```
 
 Support molecules are identified in node metadata. This allows later pruning and analysis to focus on the relationships between the molecules you started with.
 
 ## Modifications and Libraries
 
-Modifications describe the transformations pSprout can apply. Bundled reaction-SMARTS libraries are available under the names `"simple"` and `"library"`.
+Modifications describe the transformations pSprout can apply. Bundled reaction-SMARTS libraries are available under the names `"simple"` and `"medchem"`.
 
 ```python
 from psprout.modifications import ModificationLibrary
@@ -129,11 +131,16 @@ Agents decide which valid proposals are added to the graph and used as the next 
 | `ExhaustiveExpansionAgent` | Small, complete explorations | Keeps every valid, unique product. |
 | `RandomWalkAgent` | Compact and varied sampling | Samples a limited number of proposals per frontier molecule. |
 | `BeamSearchAgent` | Objective-driven exploration | Scores proposals and retains the top `beam_width` candidates. |
+| `InspectAgent` | Previewing and debugging expansions | Generates and optionally scores proposals without modifying the graph. |
+| `GreedyAgent` | Best-first exploration | Expands the highest-scoring frontier molecule while retaining other open frontier nodes. |
+| `SimulatedAnnealingAgent` | Bounded stochastic exploration | Accepts improving moves and sometimes accepts worse moves according to a cooling schedule. |
+| `PathBuildingAgent` | Connecting support molecules | Greedily grows branches toward support-molecule connections and stops when supports become connected. |
 
 `BeamSearchAgent` requires an `Objective` to score candidate proposals. `RandomWalkAgent` accepts a seed for reproducible sampling:
 
 ```python
-from psprout import RandomWalkAgent, Space
+from psprout import Space
+from psprout.agents import RandomWalkAgent
 from psprout.modifications import ModificationLibrary
 
 lib = ModificationLibrary.load("simple")
@@ -167,10 +174,12 @@ Note that this is currently unoptimized. Runtime quickly explodes.
 
 ## Measure Similarity
 
-`Space.calculate_similarity()` returns the average pairwise Tanimoto similarity over the molecules currently in the graph, using RDKit fingerprints:
+`AveragePairwiseSimilarityMetric` measures the average Tanimoto similarity over the molecules currently in the graph, using RDKit fingerprints:
 
 ```python
-similarity = space.calculate_similarity()
+from psprout.agents import AveragePairwiseSimilarityMetric
+
+similarity = AveragePairwiseSimilarityMetric().measure(space)
 ```
 
 Compare this value before and after pruning to get a coarse indication of the diversity removed from the space.
@@ -183,7 +192,7 @@ Every graph edge records the modification used to create its product. You can th
 from collections import Counter
 import networkx as nx
 
-graph = space.get_graph()
+graph = space.graph
 path = nx.shortest_path(graph, 
                         source=support_smiles, 
                         target=target_smiles)
@@ -204,7 +213,7 @@ This provenance distinguishes a pSprout space from a flat list of generated stru
 `space.view()` returns a `SpaceView`. Select a built-in style and layout, then render it in the format you like:
 
 ```python
-from psprout import GraphStyle
+from psprout.visualization import GraphStyle
 
 view = space.view(style=GraphStyle.dark(), layout="tree")
 

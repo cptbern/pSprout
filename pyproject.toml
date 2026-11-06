@@ -9,8 +9,23 @@ description = "Chemical generation utilities"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "networkx",
+    "PyYAML",
     "rdkit",
 ]
 
-[tool.setuptools]
-packages = ["psprout"]
+[project.optional-dependencies]
+visualization = [
+    "matplotlib",
+    "pygraphviz",
+    "pyvis",
+]
+legacy = [
+    "pandas",
+]
+
+[tool.setuptools.packages.find]
+include = ["psprout*"]
+
+[tool.setuptools.package-data]
+"psprout.modifications" = ["*.yaml"]

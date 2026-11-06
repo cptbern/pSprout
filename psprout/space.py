@@ -1,15 +1,19 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import dataclass, field
+from collections.abc import Callable, Iterable
+from dataclasses import InitVar, dataclass, field
+from typing import TYPE_CHECKING, Any
+import warnings
 
-from rdkit import Chem, DataStructs
+from rdkit import Chem
 from rdkit.Chem import Descriptors
 
-import pandas as pd
 import networkx as nx
 
 from .modifications.modifications import Motif, Modification, AdditionModification
+
+if TYPE_CHECKING:
+    from .visualization import GraphStyle, SpaceView
 
 ##
 # setting up directed acyclic graph to keep track of modifications
@@ -18,31 +22,35 @@ from .modifications.modifications import Motif, Modification, AdditionModificati
 #
 # identification of nodes via cononical SMILES
 
-class MoleculeNode(dict):
-    """A molecule in the modification DAG.
-    Contains the canonical SMILES as unique identifier, RDKit molecule object, and metadata.
-    Select descriptors are also computed and stored in the `descriptors` attribute.
-    """
-    id: str
-    mol: Chem.Mol
-    metadata: dict = field(default_factory=dict)
+@dataclass
+class MoleculeNode:
+    """Store a molecule and its graph metadata."""
 
-    def __init__(self, smiles: str, metadata: dict | None = None):
-        self.mol = Chem.MolFromSmiles(smiles)
-        self.id = Chem.MolToSmiles(self.mol, canonical=True)
-        self.metadata = metadata or {}
+    smiles: InitVar[str]
+    metadata: dict[str, Any] = field(default_factory=dict)
+    id: str = field(init=False)
+    mol: Chem.Mol = field(init=False, repr=False)
+    descriptors: dict[str, float | int] = field(init=False)
+
+    def __post_init__(self, smiles: str) -> None:
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            raise ValueError(f"Invalid SMILES: {smiles}")
+
+        self.mol = mol
+        self.id = Chem.MolToSmiles(mol, canonical=True)
         self.descriptors = {
-            "exact_mol_wt": Descriptors.ExactMolWt(self.mol),
-            "num_atoms": self.mol.GetNumAtoms(),
-            "num_bonds": self.mol.GetNumBonds(),
-            "num_rings": Descriptors.RingCount(self.mol),
-            "num_h_donors": Descriptors.NumHDonors(self.mol),
-            "num_h_acceptors": Descriptors.NumHAcceptors(self.mol),
-            "logp": Descriptors.MolLogP(self.mol),
+            "exact_mol_wt": Descriptors.ExactMolWt(mol),
+            "num_atoms": mol.GetNumAtoms(),
+            "num_bonds": mol.GetNumBonds(),
+            "num_rings": Descriptors.RingCount(mol),
+            "num_h_donors": Descriptors.NumHDonors(mol),
+            "num_h_acceptors": Descriptors.NumHAcceptors(mol),
+            "logp": Descriptors.MolLogP(mol),
         }
-        super().__init__(self.to_json_dict())
 
-    def to_json_dict(self) -> dict:
+    def to_json_dict(self) -> dict[str, Any]:
+        """Return a JSON-compatible representation of the node."""
         return {
             "id": self.id,
             "smiles": self.id,
@@ -52,43 +60,27 @@ class MoleculeNode(dict):
         }
 
     @classmethod
-    def from_json_dict(cls, data: dict) -> "MoleculeNode":
-        meta = dict(data.get("metadata") or {})
-        if data.get("name") is not None and "name" not in meta:
-            meta["name"] = data["name"]
-        node = cls(data["smiles"], metadata=meta)
+    def from_json_dict(cls, data: dict[str, Any]) -> "MoleculeNode":
+        metadata = dict(data.get("metadata") or {})
+        if data.get("name") is not None:
+            metadata.setdefault("name", data["name"])
+
+        node = cls(data["smiles"], metadata=metadata)
         if data.get("descriptors") is not None:
-            node.descriptors = data["descriptors"]
+            node.descriptors = dict(data["descriptors"])
         return node
 
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        if key in {"id", "metadata", "descriptors"}:
-            try:
-                dict.__setitem__(self, key, value)
-            except Exception:
-                pass
+@dataclass
+class ModificationEdge:
+    """Store a modification represented by an edge in the graph."""
 
-
-class ModificationEdge(dict):
-    """A modification in the modification graph."""
     name: str
     description: str | None = None
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    parent_atom_idx: int | None = None
 
-    def __init__(
-        self,
-        name: str,
-        description: str | None = None,
-        metadata: dict | None = None,
-    ):
-        self.name = name
-        self.description = description
-        self.metadata = metadata or {}
-        self.parent_atom_idx = None
-        super().__init__(self.to_json_dict())
-
-    def to_json_dict(self) -> dict:
+    def to_json_dict(self) -> dict[str, Any]:
+        """Return a JSON compatible representation of the edge."""
         return {
             "name": self.name,
             "description": self.description,
@@ -97,21 +89,13 @@ class ModificationEdge(dict):
         }
 
     @classmethod
-    def from_json_dict(cls, data: dict) -> "ModificationEdge":
-        meta = dict(data.get("metadata") or {})
+    def from_json_dict(cls, data: dict[str, Any]) -> "ModificationEdge":
         return cls(
-            data["name"],
+            name=data["name"],
             description=data.get("description"),
-            metadata=meta,
+            metadata=dict(data.get("metadata") or {}),
+            parent_atom_idx=data.get("parent_atom_idx"),
         )
-
-    def __setattr__(self, key, value):
-        super().__setattr__(key, value)
-        if key in {"name", "description", "metadata", "parent_atom_idx"}:
-            try:
-                dict.__setitem__(self, key, value)
-            except Exception:
-                pass
 
 class Space:
     """A chemical structure generator that can handle multiple origin molecules.
@@ -124,30 +108,60 @@ class Space:
         if any(mol is None for mol in self.support_mols):
             raise ValueError(f"Invalid support SMILES: {support_molecules}")
 
-        self.g = nx.DiGraph() # the DAG representing the reaction network
+        self._graph = nx.DiGraph() # the DAG representing the reaction network
         
         for mol in self.support_mols:
             node = MoleculeNode(Chem.MolToSmiles(mol), metadata={"type": "support"})
-            self.g.add_node(node.id, molecule=node)
+            self._graph.add_node(node.id, molecule=node)
+
+    @property
+    def graph(self) -> nx.DiGraph:
+        """Return the current reaction network graph."""
+        return self._graph
+
+    @property
+    def g(self) -> nx.DiGraph:
+        """Return the graph; use `graph` instead."""
+        warnings.warn(
+            "Space.g is deprecated; use Space.graph instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.graph
 
     @property
     def support_molecules(self) -> list[MoleculeNode]:
         """Return the support molecules used to initialize this space."""
         return [
             data["molecule"]
-            for _, data in self.g.nodes(data=True)
+            for _, data in self.graph.nodes(data=True)
             if data.get("molecule") and data["molecule"].metadata.get("type") == "support"
         ]
 
     def get_support_molecules(self) -> list[MoleculeNode]:
-        """Return the list of support molecules."""
+        """Return support molecules; use `support_molecules` instead."""
+        warnings.warn(
+            "Space.get_support_molecules() is deprecated; use "
+            "Space.support_molecules instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.support_molecules
         
     def get_graph(self) -> nx.DiGraph:
-        """Return the current reaction network graph."""
-        return self.g
+        """Return the graph; use `graph` instead."""
+        warnings.warn(
+            "Space.get_graph() is deprecated; use Space.graph instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.graph
 
-    def view(self, style=None, layout="spring"):
+    def view(
+        self,
+        style: GraphStyle | None = None,
+        layout: str | Callable[[nx.DiGraph], dict] = "spring",
+    ) -> SpaceView:
         """Return a styled, renderable `SpaceView` of the current graph.
 
         Args:
@@ -156,33 +170,42 @@ class Space:
         """
         from .visualization import GraphStyle, SpaceView
 
-        return SpaceView(self.g, style=style or GraphStyle.default(), layout=layout)
+        return SpaceView(
+            self.graph,
+            style=style or GraphStyle.default(),
+            layout=layout,
+        )
 
-    def list_smiles(self):
-        """Convenience function: list all SMILES in the reaction network."""
+    @property
+    def smiles(self) -> list[str]:
+        """Return all SMILES in the reaction network."""
         smiles_list = []
-        for node in self.g.nodes:
-            molecule = self.g.nodes[node].get("molecule")
+        for node in self.graph.nodes:
+            molecule = self.graph.nodes[node].get("molecule")
             if molecule:
                 smiles_list.append(molecule.id)
         return smiles_list
-    
-    
+
+    def list_smiles(self) -> list[str]:
+        """Return graph SMILES; use `smiles` instead."""
+        warnings.warn(
+            "Space.list_smiles() is deprecated; use Space.smiles instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.smiles
+
     def calculate_similarity(self) -> float:
-        """Calculate the average similarity (currently only using Tanimoto) between all pairs of molecules in the graph."""
-        molecules = [self.g.nodes[node]["molecule"].mol for node in self.g.nodes if "molecule" in self.g.nodes[node]]
-        if len(molecules) < 2:
-            return 1.0  # trivial case: less than two molecules.
-            
-        fps = [Chem.RDKFingerprint(mol) for mol in molecules]
-        
-        similarities = []
-        for i in range(len(fps)):
-            for j in range(i + 1, len(fps)):
-                sim = DataStructs.FingerprintSimilarity(fps[i], fps[j])
-                similarities.append(sim)
-        
-        return sum(similarities) / len(similarities)
+        """Return average similarity; use its metric instead."""
+        from .agents.metrics import AveragePairwiseSimilarityMetric
+
+        warnings.warn(
+            "Space.calculate_similarity() is deprecated; use "
+            "AveragePairwiseSimilarityMetric.measure(space) instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return AveragePairwiseSimilarityMetric().measure(self)
 
     def prune_to_support_paths(self) -> None:
         """Keep only support nodes and all nodes/edges that form paths connecting two support nodes.
@@ -193,8 +216,8 @@ class Space:
         """
         # Identify all support molecule nodes
         support_nodes = set()
-        for node in self.g.nodes:
-            molecule = self.g.nodes[node].get("molecule")
+        for node in self.graph.nodes:
+            molecule = self.graph.nodes[node].get("molecule")
             if molecule and molecule.metadata.get("type") == "support":
                 support_nodes.add(node)
         
@@ -205,7 +228,7 @@ class Space:
             # Modification edges only flow outward from supports, so two supports are
             # only "connected" if their subtrees merge on a shared descendant node.
             # Undirected connectivity captures that merge; directed edges are kept as-is.
-            undirected = self.g.to_undirected(as_view=True)
+            undirected = self.graph.to_undirected(as_view=True)
             nodes_to_keep = set(support_nodes)
             
             for source in support_nodes:
@@ -214,8 +237,8 @@ class Space:
                         for path in nx.all_simple_paths(undirected, source, target):
                             nodes_to_keep.update(path)
         
-        nodes_to_remove = set(self.g.nodes) - nodes_to_keep
-        self.g.remove_nodes_from(nodes_to_remove)
+        nodes_to_remove = set(self.graph.nodes) - nodes_to_keep
+        self.graph.remove_nodes_from(nodes_to_remove)
 
     def prune_to_shortest_support_paths(self) -> None:
         """Keep only support nodes and nodes/edges on a shortest path between two support nodes.
@@ -225,15 +248,15 @@ class Space:
         """
 
         support_nodes = set()
-        for node in self.g.nodes:
-            molecule = self.g.nodes[node].get("molecule")
+        for node in self.graph.nodes:
+            molecule = self.graph.nodes[node].get("molecule")
             if molecule and molecule.metadata.get("type") == "support":
                 support_nodes.add(node)
         
         if len(support_nodes) < 2:
             nodes_to_keep = support_nodes
         else:
-            undirected = self.g.to_undirected(as_view=True)
+            undirected = self.graph.to_undirected(as_view=True)
             nodes_to_keep = set(support_nodes)
             
             for source in support_nodes:
@@ -245,22 +268,21 @@ class Space:
                         except nx.NetworkXNoPath:
                             continue
         
-        nodes_to_remove = set(self.g.nodes) - nodes_to_keep
-        self.g.remove_nodes_from(nodes_to_remove)
+        nodes_to_remove = set(self.graph.nodes) - nodes_to_keep
+        self.graph.remove_nodes_from(nodes_to_remove)
         
     def run_agent(self, agent_type, modifications, max_iterations=2, **kwargs) -> list:
-        """Convenience function to send an agent into Space. Returns the space, the agent, and a DataFrame containing the history of the agent's execution. Helpful for quickly running an agent and analyzing its performance and impact.
-
-        Args:
-            agent_type (_type_): the Agent class to run
-            modifications (_type_): the toolkit (list of modifications) to use
-            max_iterations (int, optional): number of iterations. Defaults to 2.
-
-        Returns:
-            list: A list containing the space, the agent, and a DataFrame containing the history of the agent's execution.
+        """Run an agent and collect history; construct the agent directly instead.
         """
-        space = self
-        agent = agent_type(space, modifications, **kwargs)
+        import pandas as pd
+
+        warnings.warn(
+            "Space.run_agent() is deprecated; construct the agent and iterate "
+            "over agent.run() directly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        agent = agent_type(self, modifications, **kwargs)
         history = []
         for state in agent.run(max_iterations=max_iterations):
             history.append(
@@ -268,8 +290,8 @@ class Space:
                     "iteration": state.iteration,
                     "frontier_size": len(state.frontier),
                     "visited_size": len(state.visited),
-                    "node_count": self.get_graph().number_of_nodes(),
-                    "edge_count": self.get_graph().number_of_edges(),
+                    "node_count": self.graph.number_of_nodes(),
+                    "edge_count": self.graph.number_of_edges(),
                 }
             )
         return [pd.DataFrame(history), agent]

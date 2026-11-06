@@ -6,11 +6,15 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 import random
+from typing import TYPE_CHECKING
 
 from rdkit import Chem
 
 from ..modifications.modifications import Modification
 from ..space import MoleculeNode, Space
+
+if TYPE_CHECKING:
+    from ..constraints import ProposalFilter
 
 
 @dataclass(frozen=True)
@@ -48,6 +52,7 @@ class Agent(ABC):
         retain_all_edges: bool = False,
         verbose: bool = False,
         seed: int | None = None,
+        filters: Iterable["ProposalFilter"] = (),
     ):
         self.space = space
         self.modifications = list(modifications)
@@ -55,13 +60,14 @@ class Agent(ABC):
         self.retain_all_edges = retain_all_edges
         self.verbose = verbose
         self._rng = random.Random(seed)
+        self.filters = list(filters)
 
-    # -- candidate generation (shared by all agents) -------------------
-
+    ##
+    # candidate generation (shared by all agents)
     def propose(self, node_id: str) -> list[Proposal]:
         """Apply every modification to the molecule at `node_id` and return
         the resulting proposals. Does not touch the graph."""
-        mol = self.space.g.nodes[node_id]["molecule"].mol
+        mol = self.space.graph.nodes[node_id]["molecule"].mol
         proposals = []
         for modification in self.modifications:
             products = modification.apply(mol)
@@ -79,59 +85,117 @@ class Agent(ABC):
             raise ValueError(f"{type(self).__name__} requires an objective to score proposals.")
         return self.objective.score(self.space, proposal.product_mol)
 
-    # -- policy hook: subclasses must implement -------------------------
+    #  policy hook: subclasses must implement 
 
-    @abstractmethod
-    def select(self, proposals: list[Proposal], state: AgentState) -> list[Proposal]:
-        """Given all proposals generated from the current frontier, choose
-        which ones to realize. This is the only method most subclasses need to override."""
-        raise NotImplementedError
+    # @abstractmethod
+    # def select(self, proposals: list[Proposal], state: AgentState) -> list[Proposal]:
+    #     """Given all proposals generated from the current frontier, choose
+    #     which ones to realize. This is the only method most subclasses need to override."""
+    #     raise NotImplementedError
 
-    # -- stopping condition: subclasses may override --------------------
+    # stopping condition: subclasses may override 
 
     def is_exhausted(self, state: AgentState) -> bool:
         """Default: exhausted once the frontier dies out."""
         return not state.frontier
 
-    # -- graph mutation (shared, mirrors the former Space.expand() body) --
+    ##
+    # graph mutation (shared, mirrors the former Space.expand())
 
     def realize(self, proposals: list[Proposal]) -> set[str]:
-        """Add selected proposals to `self.space.g`, deduping by canonical
+        """Add selected proposals to `self.space.graph`, deduping by canonical
         SMILES. Returns the set of node IDs that should join the next frontier."""
         next_ids: set[str] = set()
         for proposal in proposals:
-            if proposal.product_smiles not in self.space.g.nodes:
+            if proposal.product_smiles not in self.space.graph.nodes:
                 node = MoleculeNode(proposal.product_smiles)
-                self.space.g.add_node(node.id, molecule=node)
-                self.space.g.add_edge(proposal.parent_id, node.id, modification=proposal.modification.name)
+                self.space.graph.add_node(node.id, molecule=node)
+                self.space.graph.add_edge(proposal.parent_id, node.id, modification=proposal.modification.name)
                 next_ids.add(node.id)
             elif self.retain_all_edges:
-                self.space.g.add_edge(proposal.parent_id, proposal.product_smiles, modification=proposal.modification.name)
+                self.space.graph.add_edge(proposal.parent_id, proposal.product_smiles, modification=proposal.modification.name)
         return next_ids
 
-    # -- one iteration ---------------------------------------------------
+    # lifecycle hooks:
+    # let subclasses customize certain iteration stags without messing with
+    # the entire advance()
 
+    # 1. 
+    def select_frontier(self, state: AgentState) -> set[str]:
+        """Choose nodes to expand during this iteration."""
+        return state.frontier
+
+    # 2.
+    def generate_proposals(
+        self,
+        frontier: Iterable[str],
+    ) -> list[Proposal]:
+        """Generate candidate proposals from the selected frontier."""
+        proposals: list[Proposal] = []
+        for node_id in frontier:
+            proposals.extend(self.propose(node_id))
+        return proposals
+
+    # 3.
+    def filter_proposals(
+        self,
+        proposals: list[Proposal],
+        state: AgentState,
+    ) -> list[Proposal]:
+        """Apply constraints before policy-based proposal selection."""
+        accepted: list[Proposal] = []
+        for proposal in proposals:
+            if all(
+                proposal_filter.evaluate(self.space, proposal).accepted
+                for proposal_filter in self.filters
+            ):
+                accepted.append(proposal)
+        return accepted
+
+    # 4. pretty much any agent will do selecting
+    @abstractmethod
+    def select(
+        self,
+        proposals: list[Proposal],
+        state: AgentState,
+    ) -> list[Proposal]:
+        """Select proposals to realize."""
+        raise NotImplementedError
+
+    # 5. realization of proposals in graph
+    # -> realize() (can still be overridden, of course)
+    
+    # 6.
+    def report(
+        self,
+        state: AgentState,
+        selected: list[Proposal],
+    ) -> None:
+        """Report iteration results; default implementation does nothing."""
+        return None
+
+    # one iteration
     def advance(self, state: AgentState) -> AgentState:
-        all_proposals: list[Proposal] = []
-        for node_id in state.frontier:
-            all_proposals.extend(self.propose(node_id))
-
-        selected = self.select(all_proposals, state)
+        frontier = self.select_frontier(state)
+        proposals = self.generate_proposals(frontier)
+        proposals = self.filter_proposals(proposals, state)
+        selected = self.select(proposals, state)
         next_frontier = self.realize(selected)
 
-        return AgentState(
+        next_state = AgentState(
             iteration=state.iteration + 1,
             frontier=next_frontier,
             visited=state.visited | next_frontier,
             rng=state.rng,
         )
+        self.report(next_state, selected)
+        return next_state
 
-    # -- driver ------------------------------------------------------------
-
+    # driver
     def run(self, max_iterations: int | None = None):
         """Yield an `AgentState` after each iteration, until `is_exhausted()`
         fires or `max_iterations` is reached."""
-        support_ids = {node.id for node in self.space.get_support_molecules()}
+        support_ids = {node.id for node in self.space.support_molecules}
         state = AgentState(iteration=0, frontier=support_ids, visited=set(support_ids), rng=self._rng)
 
         count = 0

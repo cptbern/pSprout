@@ -1,4 +1,7 @@
-"""A random-walk agent: samples a small number of proposals per frontier node."""
+"""A random-walk agent: samples a small number of proposals per frontier node.
+
+"Not all who wander are lost", J.R.R. Tolkien
+"""
 
 from __future__ import annotations
 
@@ -25,6 +28,10 @@ class RandomWalkAgent(Agent):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        if k <= 0:
+            raise ValueError("RandomWalkAgent requires k > 0.")
+        if temperature is not None and temperature <= 0:
+            raise ValueError("RandomWalkAgent temperature must be positive when set.")
         self.k = k
         self.temperature = temperature
 
@@ -40,9 +47,27 @@ class RandomWalkAgent(Agent):
 
     def _sample(self, group: list[Proposal], state: AgentState) -> list[Proposal]:
         k = min(self.k, len(group))
+        if not k:
+            return []
+
         if self.objective is not None and self.temperature is not None:
+            remaining = list(range(len(group)))
             weights = [math.exp(self.score(proposal) / self.temperature) for proposal in group]
-            total = sum(weights)
-            probabilities = [w / total for w in weights]
-            return state.rng.choices(group, weights=probabilities, k=k) if k else []
+            selected: list[Proposal] = []
+
+            while len(selected) < k and remaining:
+                total = sum(weights[index] for index in remaining)
+                threshold = state.rng.random() * total
+                cumulative = 0.0
+                for index in remaining:
+                    cumulative += weights[index]
+                    if threshold <= cumulative:
+                        selected.append(group[index])
+                        remaining.remove(index)
+                        break
+                else:
+                    last = remaining.pop()
+                    selected.append(group[last])
+            return selected
+
         return state.rng.sample(group, k)

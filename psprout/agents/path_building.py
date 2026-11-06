@@ -40,10 +40,10 @@ class PathBuildingAgent(Agent):
         return not state.frontier or self._supports_connected()
 
     def _supports_connected(self) -> bool:
-        support_ids = [node.id for node in self.space.get_support_molecules()]
+        support_ids = [node.id for node in self.space.support_molecules]
         if len(support_ids) < 2:
             return False
-        undirected = self.space.g.to_undirected(as_view=True)
+        undirected = self.space.graph.to_undirected(as_view=True)
         for i in range(len(support_ids)):
             for j in range(i + 1, len(support_ids)):
                 if nx.has_path(undirected, support_ids[i], support_ids[j]):

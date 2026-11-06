@@ -39,7 +39,21 @@ class AveragePairwiseSimilarityMetric(Metric):
     """
 
     def measure(self, space: Space, mol: Chem.Mol | None = None) -> float:
-        return space.calculate_similarity()
+        molecules = [
+            data["molecule"].mol
+            for _, data in space.graph.nodes(data=True)
+            if "molecule" in data
+        ]
+        if len(molecules) < 2:
+            return 1.0
+
+        fingerprints = [Chem.RDKFingerprint(molecule) for molecule in molecules]
+        similarities = [
+            DataStructs.FingerprintSimilarity(first, second)
+            for index, first in enumerate(fingerprints)
+            for second in fingerprints[index + 1 :]
+        ]
+        return sum(similarities) / len(similarities)
 
 
 class DescriptorTargetMetric(Metric):
@@ -54,18 +68,34 @@ class DescriptorTargetMetric(Metric):
         return -abs(value - self.target)
 
 
-class NoveltyMetric(Metric):
-    """Minimum Tanimoto distance (1 - similarity) of a molecule to all graph molecules."""
+class LipinskiRuleOfFiveMetric(Metric):
+    """Return the negative number of Lipinski Rule-of-Five violations."""
+    def measure(self, space: Space, # ignored
+                mol: Chem.Mol) -> float:
+        violations = sum(
+            (
+                Descriptors.MolWt(mol) > 500,
+                Descriptors.MolLogP(mol) > 5,
+                Descriptors.NumHDonors(mol) > 5,
+                Descriptors.NumHAcceptors(mol) > 10,
+            )
+        )
+        return -float(violations)
 
+
+class NoveltyMetric(Metric):
+    """Distance from the nearest already-realized molecule, using the maximum similarity."""
     def measure(self, space: Space, mol: Chem.Mol) -> float:
         fp = Chem.RDKFingerprint(mol)
         other_fps = [
-            Chem.RDKFingerprint(space.g.nodes[other]["molecule"].mol)
-            for other in space.g.nodes
-            if "molecule" in space.g.nodes[other]
+            Chem.RDKFingerprint(space.graph.nodes[other]["molecule"].mol)
+            for other in space.graph.nodes
+            if "molecule" in space.graph.nodes[other]
         ]
         if not other_fps:
             return 1.0  # trivial case: no other molecules to compare against.
-        min_similarity = min(DataStructs.FingerprintSimilarity(fp, other_fp) for other_fp in other_fps)
-        return 1.0 - min_similarity
+        max_similarity = max(
+            DataStructs.FingerprintSimilarity(fp, other_fp) for other_fp in other_fps
+        )
+        return 1.0 - max_similarity
 

@@ -28,7 +28,7 @@ class ModificationLibrary:
 
     @classmethod
     def load(cls, name: str) -> "ModificationLibrary":
-        """Load one of the libraries bundled with pSprout (e.g. "simple", "library")."""
+        """Load one of the libraries bundled with pSprout (e.g. "simple", "medchem")."""
         try:
             filename = _BUNDLED_LIBRARIES[name]
         except KeyError:
