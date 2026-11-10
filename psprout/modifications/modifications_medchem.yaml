@@ -1,0 +1,244 @@
+# Modification library for pSprout
+# Heavily inspired by Med Chem. 2011 May 26;54(10):3451-79.
+#doi: 10.1021/jm200187y. Epub 2011 May 2.
+# The medicinal chemist's toolbox: an analysis of reactions used in the pursuit of drug candidates 
+
+modifications:
+# C-N / C-O / C-S bonds
+  - symbol: "amide_formation"
+    name: "Amide formation from acyl halide"
+    type: "acylation"
+    reactionSMARTS: "[C:1](=[O:2])-[Cl,Br].[N;H1,H2:3]>>[C:1](=[O:2])-[N:3]"
+    description: "Amide formation from acyl halide"
+
+  - symbol: "amide_formation_acid"
+    name: "Amide formation from carboxylic acid"
+    type: "acylation"
+    reactionSMARTS: "[C:1](=[O:2])-[O;H1].[N;H1,H2:3]>>[C:1](=[O:2])-[N:3]"
+    description: "Amide formation from carboxylic acid"
+
+  - symbol: "ester_formation_acyl_halide"
+    name: "Ester formation from acyl halide"
+    type: "acylation"
+    reactionSMARTS: "[C:1](=[O:2])-[Cl,Br].[O;H1:3]>>[C:1](=[O:2])-[O:3]"
+    description: "Ester formation from acyl halide"
+
+  - symbol: "ester_formation_acid"
+    name: "Ester formation from carboxylic acid"
+    type: "acylation"
+    reactionSMARTS: "[C:1](=[O:2])-[O;H1].[O;H1:3]>>[C:1](=[O:2])-[O:3]"
+    description: "Ester formation from carboxylic acid"
+
+  - symbol: "sulfonamide_formation"
+    name: "Sulfonamide formation"
+    type: "sulfonylation"
+    reactionSMARTS: "[S:1](=[O:2])(=[O:3])-[Cl,Br].[N;H1,H2:4]>>[S:1](=[O:2])(=[O:3])-[N:4]"
+    description: "Sulfonamide formation"
+
+  - symbol: "sulfonate_formation"
+    name: "Sulfonate ester formation"
+    type: "sulfonylation"
+    reactionSMARTS: "[S:1](=[O:2])(=[O:3])-[Cl,Br].[O;H1:4]>>[S:1](=[O:2])(=[O:3])-[O:4]"
+    description: "Sulfonate ester formation"
+
+  - symbol: "carbamate_formation"
+    name: "Carbamate formation"
+    type: "carbonylation"
+    reactionSMARTS: "[C:1](=[O:2])-[Cl,Br].[O;H1:3]>>[C:1](=[O:2])-[O:3]"
+    description: "Carbamate formation"
+
+  - symbol: "urea_formation"
+    name: "Urea formation from carbamoyl halide"
+    type: "carbonylation"
+    reactionSMARTS: "[C:1](=[O:2])-[Cl,Br].[N;H1,H2:3]>>[C:1](=[O:2])-[N:3]"
+    description: "Urea formation from carbamoyl halide"
+
+  - symbol: "alkylation_amine"
+    name: "Alkylation of amine"
+    type: "alkylation"
+    reactionSMARTS: "[C;X4:1]-[Cl,Br,I].[N;H1,H2:2]>>[C:1]-[N:2]"
+    description: "Alkylation of amine"
+
+  - symbol: "alkylation_oxygen"
+    name: "O-alkylation"
+    type: "alkylation"
+    reactionSMARTS: "[C;X4:1]-[Cl,Br,I].[O;H1:2]>>[C:1]-[O:2]"
+    description: "O-alkylation"
+
+  - symbol: "alkylation_sulfur"
+    name: "S-alkylation"
+    type: "alkylation"
+    reactionSMARTS: "[C;X4:1]-[Cl,Br,I].[S;H1:2]>>[C:1]-[S:2]"
+    description: "S-alkylation"
+
+  - symbol: "aryl_amination_snar"
+    name: "Aryl amination / SNAr"
+    type: "aryl_substitution"
+    reactionSMARTS: "[c:1]-[F,Cl,Br,I].[N;H1,H2:2]>>[c:1]-[N:2]"
+    description: "Aryl amination / SNAr"
+
+  - symbol: "aryl_ether_snar"
+    name: "Aryl ether formation / SNAr"
+    type: "aryl_substitution"
+    reactionSMARTS: "[c:1]-[F,Cl,Br,I].[O;H1:2]>>[c:1]-[O:2]"
+    description: "Aryl ether formation / SNAr"
+
+  - symbol: "aryl_thioether_snar"
+    name: "Aryl thioether formation / SNAr"
+    type: "aryl_substitution"
+    reactionSMARTS: "[c:1]-[F,Cl,Br,I].[S;H1:2]>>[c:1]-[S:2]"
+    description: "Aryl thioether formation / SNAr"
+
+# Cross-coupling reactions
+
+  - symbol: "suzuki_coupling"
+    name: "Suzuki aryl coupling"
+    type: "cross_coupling"
+    reactionSMARTS: "[c:1]-[Br,I].[c:2]-[B](O)O>>[c:1]-[c:2]"
+    description: "Suzuki aryl coupling"
+
+  - symbol: "sonogashira_coupling"
+    name: "Sonogashira coupling"
+    type: "cross_coupling"
+    reactionSMARTS: "[c:1]-[Br,I].[C;X2:2]#[C;H:3]>>[c:1]-[C:2]#[C:3]"
+    description: "Sonogashira coupling"
+
+  - symbol: "heck_coupling"
+    name: "Heck coupling"
+    type: "cross_coupling"
+    reactionSMARTS: "[c:1]-[Br,I].[C;X3:2]=[C;H1:3]>>[c:1]-[C:2]=[C:3]"
+    description: "Heck coupling"
+
+  - symbol: "aryl_buchwald_amination"
+    name: "Aryl amination / Buchwald-Hartwig-type"
+    type: "cross_coupling"
+    reactionSMARTS: "[c:1]-[Br,I].[N;H1,H2:2]>>[c:1]-[N:2]"
+    description: "Aryl amination / Buchwald-Hartwig-type"
+
+# Reductive amination and condensation reactions, carbonyl chemistry
+
+  - symbol: "reductive_amination"
+    name: "Reductive amination"
+    type: "reductive_amination"
+    reactionSMARTS: "[C;X3:1]=[O:2].[N;H1,H2:3]>>[C:1]-[N:3]"
+    description: "Reductive amination"
+
+  - symbol: "imine_formation"
+    name: "Imine formation"
+    type: "condensation"
+    reactionSMARTS: "[C;X3:1]=[O:2].[N;H2:3]>>[C:1]=[N:3]"
+    description: "Imine formation"
+
+  - symbol: "oxime_formation"
+    name: "Oxime formation"
+    type: "condensation"
+    reactionSMARTS: "[C;X3:1]=[O:2].[N;H2:3]-[O;H1:4]>>[C:1]=[N:3]-[O:4]"
+    description: "Oxime formation"
+
+  - symbol: "hydrazone_formation"
+    name: "Hydrazone formation"
+    type: "condensation"
+    reactionSMARTS: "[C;X3:1]=[O:2].[N;H2:3]-[N;H1:4]>>[C:1]=[N:3]-[N:4]"
+    description: "Hydrazone formation"
+
+# Oxidation and reduction reactions, functional group transformations
+
+  - symbol: "alcohol_to_carbonyl"
+    name: "Alcohol oxidation to carbonyl"
+    type: "oxidation"
+    reactionSMARTS: "[C;H1,H2:1]-[O;H1:2]>>[C:1]=[O:2]"
+    description: "Alcohol oxidation to carbonyl"
+
+  - symbol: "carbonyl_to_alcohol"
+    name: "Carbonyl reduction to alcohol"
+    type: "reduction"
+    reactionSMARTS: "[C;X3:1]=[O:2]>>[C;X4:1]-[O;H1:2]"
+    description: "Carbonyl reduction to alcohol"
+
+  - symbol: "ester_to_alcohol"
+    name: "Ester reduction"
+    type: "reduction"
+    reactionSMARTS: "[C:1](=[O:2])-[O:3]>>[C;X4:1]-[O;H1:2]"
+    description: "Ester reduction"
+
+  - symbol: "amide_to_amine"
+    name: "Amide reduction"
+    type: "reduction"
+    reactionSMARTS: "[C:1](=[O:2])-[N:3]>>[C;X4:1]-[N:3]"
+    description: "Amide reduction"
+
+  - symbol: "nitro_to_amine"
+    name: "Nitro reduction to amine"
+    type: "reduction"
+    reactionSMARTS: "[N+:1](=O)[O-]>>[NH2:1]"
+    description: "Nitro reduction to amine"
+
+  - symbol: "nitrile_to_amine"
+    name: "Nitrile reduction to primary amine"
+    type: "reduction"
+    reactionSMARTS: "[C:1]#[N:2]>>[CH2:1]-[NH2:2]"
+    description: "Nitrile reduction to primary amine"
+
+  - symbol: "alkene_hydrogenation"
+    name: "Alkene hydrogenation"
+    type: "reduction"
+    reactionSMARTS: "[C:1]=[C:2]>>[C:1]-[C:2]"
+    description: "Alkene hydrogenation"
+
+  - symbol: "alkyne_hydrogenation"
+    name: "Alkyne partial hydrogenation"
+    type: "reduction"
+    reactionSMARTS: "[C:1]#[C:2]>>[C:1]=[C:2]"
+    description: "Alkyne partial hydrogenation"
+
+  - symbol: "aldehyde_to_acid"
+    name: "Aldehyde oxidation to carboxylic acid"
+    type: "oxidation"
+    reactionSMARTS: "[C;H1:1]=[O:2]>>[C:1](=[O:2])-[OH]"
+    description: "Aldehyde oxidation to carboxylic acid"
+
+# Common med-chem N/O modifications: alkylation and acylation reactions
+
+  - symbol: "n_methylation"
+    name: "N-methylation"
+    type: "alkylation"
+    reactionSMARTS: "[N;H1:1]>>[N:1]-[CH3]"
+    description: "N-methylation"
+
+  - symbol: "n_acetylation"
+    name: "N-acetylation"
+    type: "acylation"
+    reactionSMARTS: "[N;H1:1].[C:2](=[O:3])-[Cl,Br]>>[N:1]-[C:2](=[O:3])"
+    description: "N-acetylation"
+
+  - symbol: "o_methylation"
+    name: "O-methylation"
+    type: "alkylation"
+    reactionSMARTS: "[O;H1:1]>>[O:1]-[CH3]"
+    description: "O-methylation"
+
+  - symbol: "o_acetylation"
+    name: "O-acetylation"
+    type: "acylation"
+    reactionSMARTS: "[O;H1:1].[C:2](=[O:3])-[Cl,Br]>>[O:1]-[C:2](=[O:3])"
+    description: "O-acetylation"
+
+# Heterocycles and ring modifications
+
+  - symbol: "epoxide_opening_amine"
+    name: "Epoxide opening with amine"
+    type: "ring_opening"
+    reactionSMARTS: "[C;R:1]1[O;R:2][C;R:3]1.[N;H1,H2:4]>>[C:1]-[N:4].[C:3]-[O:2]"
+    description: "Epoxide opening with amine"
+
+  - symbol: "epoxide_opening_alcohol"
+    name: "Epoxide opening with alcohol"
+    type: "ring_opening"
+    reactionSMARTS: "[C;R:1]1[O;R:2][C;R:3]1.[O;H1:4]>>[C:1]-[O:4].[C:3]-[O:2]"
+    description: "Epoxide opening with alcohol"
+
+  - symbol: "pictet_spengler"
+    name: "Pictet-Spengler cyclization"
+    type: "cyclization"
+    reactionSMARTS: "[cH1:1]1:[c:2](-[CH2:7]-[CH2:8]-[NH2:9]):[c:3]:[c:4]:[c:5]:[c:6]:1.[#6:11]-[CH1;R0:10]=[OD1]>>[c:1]12:[c:2](-[CH2:7]-[CH2:8]-[NH1:9]-[C:10]-2(-[#6:11])):[c:3]:[c:4]:[c:5]:[c:6]:1"
+    description: "Pictet-Spengler cyclization"

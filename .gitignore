@@ -1,0 +1,34 @@
+# public-release branch: whitelist only the subset published to the cptbern remote.
+# Ignore everything by default.
+*
+
+# Keep these root files under version control.
+!/LICENSE
+!/pyproject.toml
+!/README.md
+!/requirements.txt
+
+# Keep the examples under version control (they are rendered natively on github.com; no external assets like lib/ or exports/ are needed for that rendering).
+!/Examples/
+!/Examples/sample_modification_graph.png
+!/Examples/merged_space.png
+
+# Keep the notebooks under version control (rendered natively on github.com;
+# no external assets like lib/ or exports/ are needed for that rendering).
+!/Documentation/
+!/Documentation/*.ipynb
+
+# Keep the source package under version control.
+!/psprout/
+!/psprout/**
+
+# Keep this ignore file tracked.
+!/.gitignore
+
+# Always ignore environment and Python cache.
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*DS_Store

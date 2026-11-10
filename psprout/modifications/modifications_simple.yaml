@@ -1,0 +1,27 @@
+# Very simple modifications for testing purposes ONLY
+# -> use this when you are more concerned with the graph network than the chemistry
+
+modifications:
+  - symbol: "AddFormyl"
+    name: "Add formyl group"
+    type: "addition"
+    reactionSMARTS: "([*:1][H])>>[*:1]-[CX3H1]=[OX1]"
+    description: "Adds a formyl group to an avaiable position on the molecule."
+
+  - symbol: "AddHydroxyl"
+    name: "Add hydroxyl group"
+    type: "addition"
+    reactionSMARTS: "[H:1][*:2]>>[O:1][*:2]"
+    description: "Adds a hydroxyl group to an avaiable position on the molecule."
+
+  - symbol: "AddAmino"
+    name: "Add amino group"
+    type: "addition"
+    reactionSMARTS: "[H:1][*:2]>>[N:1][*:2]"
+    description: "Adds an amino group to an avaiable position on the molecule."
+
+  - symbol: "AddMethyl"
+    name: "Add methyl group"
+    type: "addition"
+    reactionSMARTS: "[H:1][*:2]>>[CH3:1][*:2]"
+    description: "Adds a methyl group to an avaiable position on the molecule."

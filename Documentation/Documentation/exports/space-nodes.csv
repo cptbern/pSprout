@@ -1,0 +1,12 @@
+smiles,name,node_type,exact_mol_wt,num_atoms,num_bonds,num_rings,num_h_donors,num_h_acceptors,logp,metadata
+CO,,support,32.026214748,2,1,0,1,1,-0.3915,"{""type"": ""support""}"
+COC=O,,generated,60.021129368000004,4,3,0,0,2,-0.2108000000000001,{}
+CON,,generated,47.03711378,3,2,0,1,2,-0.4935,{}
+COO,,generated,48.021129368,3,2,0,1,2,0.10580000000000006,{}
+NCO,,generated,47.03711378,3,2,0,2,2,-1.1051000000000002,{}
+Nc1ccccc1,,generated,93.057849224,7,7,1,1,1,1.2688000000000001,{}
+O=CCO,,generated,60.021129368000004,4,3,0,1,2,-0.8224,{}
+O=Cc1ccccc1,,generated,106.041864812,8,8,1,0,1,1.4990999999999999,{}
+OCO,,generated,48.021129368,3,2,0,2,2,-1.0715000000000001,{}
+Oc1ccccc1,,generated,94.041864812,7,7,1,1,1,1.3921999999999999,{}
+c1ccccc1,,support,78.046950192,6,6,1,0,0,1.6866,"{""type"": ""support""}"
